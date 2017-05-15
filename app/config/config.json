@@ -1,0 +1,6 @@
+{
+    "port" : 3100,
+    "appDataFolder" : "/appdata",
+    "logErrorFolder" : "/log"
+
+}

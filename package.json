@@ -1,0 +1,25 @@
+{
+  "name": "node-server-code",
+  "version": "1.0.0",
+  "description": "server code for doing curd operation on text files",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anupsaw/node-server-code.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/anupsaw/node-server-code/issues"
+  },
+  "homepage": "https://github.com/anupsaw/node-server-code#readme",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "express": "^4.15.2",
+    "q": "^1.5.0"
+  }
+}
