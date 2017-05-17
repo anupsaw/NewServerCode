@@ -272,38 +272,18 @@ function matchOne(data) {
     return matchData(data, false);
 }
 
-function rand(digits) {
-    return Math.floor(Math.random() * parseInt('8' + '9'.repeat(digits - 1)) + parseInt('1' + '0'.repeat(digits - 1)));
-}
-
-
-function processData(reqData, fileData) {
-    try {
-        var processedData = fileData.push(reorderData(reqData))
-        return q.resolve(processedData);
-    } catch (error) {
-        err(error);
-    }
-
-
-}
-
-function reorderData(data) {
-    var _createdData = {};
-    _createdData['__id'] = data['__id'];
-    for (var key in data) {
-        if (key != "__id") _createdData[key] = data[key];
-    }
-
-    return _createdData;
-}
-
 function validateObject(data) {
     if (!(typeof data === 'object' && data.length === undefined)) {
         return new Error('Options are not in object');
     } else {
         return true;
     }
+}
+
+
+function processData(reqData, fileData) {
+
+  return  fileData.push(reqData);
 
 }
 
@@ -361,14 +341,7 @@ function findMany(options) {
 
 function save(data, isNew) {
 
-    if (isNew) {
-        processData
-    }
-    return find()
-        .then(function (fileData) {
-            return processData(data, processData)
-                .then(writeDocument);
-        }).catch(err);
+    return find().then(writeDocument).catch(err);
 }
 
 
