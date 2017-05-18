@@ -40,7 +40,7 @@ router.use(function timeLog(req, res, next) {
 // define the about route
 router.route('/:entity')
     .get(api.get.getData)
-    .post(ap.post)
+    .post(api.post)
 
 
 router.use(function (req, res, next) {

@@ -93,6 +93,7 @@ function getDataById(id, data) {
 function setId(id) {
     _id = id;
 }
+
 function setEntity(entity) {
     _entity = entity;
 }
@@ -223,11 +224,7 @@ function writeDocument(data, documentName) {
 }
 
 
-
-
-function matchData(data, isMatchMany) {
-
-
+function matchDataSync(data, options, isMatchMany) {
     var matchedData = null,
         matchedOne = null,
         matchedMany = [];
@@ -235,7 +232,8 @@ function matchData(data, isMatchMany) {
     try {
 
         for (var i = 0; i < data.length; i++) {
-            var isMatched = false, j = 0;
+            var isMatched = false,
+                j = 0;
             for (var key in options) {
                 if (j > 0 && !isMatched) break;
                 isMatched = false;
@@ -247,9 +245,15 @@ function matchData(data, isMatchMany) {
             }
             if (isMatched) {
                 if (isMatchMany) {
-                    matchedMany.push(data[i]);
+                    matchedMany.push({
+                        index: i,
+                        data: data[i]
+                    });
                 } else {
-                    matchedOne = data[i]
+                    matchedOne = [{
+                        index: i,
+                        data: data[i]
+                    }]
                     break;
                 }
             }
@@ -258,39 +262,96 @@ function matchData(data, isMatchMany) {
         }
         matchedData = isMatchMany ? matchedMany : matchedOne;
 
-        return q.resolve(matchedData);
+        return matchedData;
     } catch (error) {
-        return q.reject(error);
+        throw error;
     }
 }
 
-function matchMany(data) {
-    return matchData(data, true);
+function matchData(data, options, isMatchMany) {
+
+    try {
+        var data = matchDataSync(data, isMatchMany);
+        return q.resolve(data);
+    } catch (error) {
+        return err(error);
+    }
+
 }
 
-function matchOne(data) {
-    return matchData(data, false);
+
+function extractData(data) {
+    var extractedData;
+    try {
+        if (Array.isArray(data)) {
+            extractedData = data.map(function (item) {
+                return item.data;
+            })
+        } else {
+            extractedData = data.data;
+        }
+        return q.resolve(data.data);
+    } catch (error) {
+        return err(error);
+    }
+
 }
+
+
+
+
 
 function rand(digits) {
     return Math.floor(Math.random() * parseInt('8' + '9'.repeat(digits - 1)) + parseInt('1' + '0'.repeat(digits - 1)));
 }
 
 
-function processData(reqData, fileData) {
+function patchDataSync(to, from, ignore) {
+
     try {
-        var processedData = fileData.push(reorderData(reqData))
-        return q.resolve(processedData);
+        for (var key in from) {
+            if (!ignore.hasOwnProperty(key)) {
+                to[key] = from[key];
+            }
+        }
+
+        return to;
     } catch (error) {
-        err(error);
+        throw error;
     }
 
+}
 
+
+function patchData(to, from, ignore) {
+
+    try {
+        var patchedData = patchDataSync(to, from, ignore);
+        return q.resolve(patchedData);
+    } catch (error) {
+        return q.reject(error);
+    }
+
+}
+
+
+function processData(reqData, fileData) {
+    try {
+        reqData = reorderData(reqData);
+        if(!Array.isArray(fileData)) fileData = [];
+        fileData.push(reorderData(reqData))
+        return q.resolve({
+            reqData: reqData,
+            fileData: fileData
+        });
+    } catch (error) {
+        return err(error);
+    }
 }
 
 function reorderData(data) {
     var _createdData = {};
-    _createdData['__id'] = data['__id'];
+    _createdData['__id'] = rand(10);
     for (var key in data) {
         if (key != "__id") _createdData[key] = data[key];
     }
@@ -323,71 +384,122 @@ function collection(entity) {
     collectionName = entity;
     return {
         find: find,
-        findOne: findOne
+        findOne: findOne,
+        findMany: findMany,
+        save: save,
+        update: update,
+        remove: remove
     }
-}
 
 
-function find() {
 
-    return getDocumentName(collectionName)
-        .then(readDocument)
-        .catch(err);
+    function find() {
 
-}
+        return getDocumentpath(collectionName)
+            .then(readDocument)
+            .catch(err);
 
-function findOne(options) {
-
-    if (!(typeof options === 'object' && options.length === undefined))
-        return err(new Error('Options are not in object'));
-
-    return find()
-        .then(matchOne)
-        .catch(err);
-
-}
-
-function findMany(options) {
-
-
-    if (!(typeof options === 'object' && options.length === undefined))
-        return err(new Error('Options are not in object'));
-
-
-    return find()
-        .then(matchMany)
-        .catch(err);
-}
-
-function save(data, isNew) {
-
-    if (isNew) {
-        processData
     }
-    return find()
-        .then(function (fileData) {
-            return processData(data, processData)
-                .then(writeDocument);
-        }).catch(err);
+
+    function findOne(options) {
+
+        if (!(typeof options === 'object' && options.length === undefined))
+            return err(new Error('Options are not in object'));
+
+        function matchOne(data) {
+            return matchData(data, options, false);
+        }
+        return find()
+            .then(matchOne)
+            .then(extractData)
+            .catch(err);
+
+    }
+
+    function findMany(options) {
+
+
+        if (!(typeof options === 'object' && options.length === undefined))
+            return err(new Error('Options are not in object'));
+
+        function matchMany(data) {
+            return matchData(data, options, true);
+        }
+
+        return find()
+            .then(matchMany)
+            .catch(err);
+    }
+
+    function save(data) {
+
+
+        var savedData = null;
+
+        function pushToMainData(fileData) {
+            return processData(data, fileData);
+        }
+
+        function sendData() {
+            return q.resolve(savedData);
+        }
+
+        function writeOnFile(processedData) {
+            savedData = processedData.reqData;
+            return writeDocument(processedData.fileData, collectionName)        
+        }
+
+        return find()
+            .then(pushToMainData)
+            .then(writeOnFile)
+            .then(sendData)
+            .catch(err);
+    }
+
+
+    function update(data, options) {
+
+        if (!(typeof options === 'object' && options.length === undefined))
+            return err(new Error('Options are not in object'));
+
+        var fullData, updateIndex;
+
+        function matchOne(_data) {
+            fullData = _data;
+            return matchData(_data, options, false);
+        }
+
+        function updateDate(foundData) {
+            updateIndex = foundData.index;
+            return patchData(foundData, data, options)
+        }
+
+        function writeData(data) {
+            fullData.splice(updateIndex, 1, data);
+            return writeDocument(fullData, collectionName);
+        }
+
+        return find()
+            .then(matchOne)
+            .then(updateDate)
+            .then(writeData)
+            .catch(err);
+
+
+    }
+
+
+    function remove() {
+
+    }
+
 }
-
-
-function update() {
-
-}
-
-
-function remove() {
-
-}
-
-
 
 /**
  * log error on log file
  */
 
-function log(error, entity) {
+function logError(error, entity) {
 
     if (!entity) entity = getEntity();
     var err = JSON.stringify({
@@ -416,9 +528,5 @@ function log(error, entity) {
  */
 
 module.exports = {
-    readData: readData,
-    writeData: writeData,
-    logError: logError,
-    createDeepDir: mkdir,
-    setEntity: setEntity
+    collection: collection
 };

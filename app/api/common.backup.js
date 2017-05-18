@@ -5,7 +5,7 @@ var q = require('q');
 var config = requireFile('app/config/config.js')();
 
 
-var _id, _entity, baseFolder, collectionName, _isMatchMany;
+var _id, _entity, baseFolder, collectionName, isMatchMany;
 
 /**
  * get FileName  using entity
@@ -93,6 +93,7 @@ function getDataById(id, data) {
 function setId(id) {
     _id = id;
 }
+
 function setEntity(entity) {
     _entity = entity;
 }
@@ -144,13 +145,30 @@ function readData(entity, id, baseFolder) {
  * new api from here
  */
 
+function getDocumentPathAsyn(entity, baseFolder) {
 
-/**
- * get file name Sync
- */
+    var _dir, _fileName;
 
+    baseFolder = (baseFolder === undefined) ? config.appDataFolder : baseFolder;
 
-function getDocumentPathSync(entity, baseFolder) {
+    try {
+
+        _dir = baseFolder.substr(1) + '/' + entity + 's';
+        _fileName = path.resolve(_dir + '/' + entity + '.json');
+
+        if (!fs.existsSync(_fileName)) {
+            mkdir('/' + _dir);
+            writeData('{}', _fileName);
+        }
+
+        return q.resolve(_fileName);
+    } catch (error) {
+        return q.reject(error);
+    }
+
+}
+
+function getDocumentPath(entity, baseFolder) {
 
     var _dir, _fileName;
 
@@ -173,30 +191,17 @@ function getDocumentPathSync(entity, baseFolder) {
 
 }
 
-/**
- * get file path async;
- */
-
-function getDocumentpath(entity, baseFolder) {
-    try {
-
-        var filePath = getDocumentPathSync(entity, baseFolder);
-        return q.resolve(filePath);
-
-    } catch (error) {
-        return q.reject(error);
-    }
-
-}
-
 
 /**
  * async file read.
+ * this must return an array
  */
-function readDocument(documentName) {
+function readDocument(documentPath) {
 
-    var data = fs.readFileSync(documentName, 'UTF-8')
-    return q.resolve(JSON.parse(data));
+    var data = fs.readFileSync(documentPath, 'UTF-8')
+    data = JSON.parse(data);
+    if (!Array.isArray(data)) data = [];
+    return q.resolve(data);
 
 }
 
@@ -208,91 +213,18 @@ function readDocument(documentName) {
  */
 
 
-function writeDocument(data, documentName) {
+function writeDocument(data, documentPath) {
 
     if (typeof data !== 'string') {
         data = JSON.stringify(data);
     }
 
     //return getFileName(entity, baseFolder).then(function (file) {
-    return fs.writeFileSync(documentName, data, 'utf-8');
+    return fs.writeFileSync(documentPath, data, 'utf-8');
     //})
 
     //return fs.writeFile(file, data, 'utf-8');
 
-}
-
-
-
-
-function matchData(data, isMatchMany) {
-
-
-    var matchedData = null,
-        matchedOne = null,
-        matchedMany = [];
-
-    try {
-
-        for (var i = 0; i < data.length; i++) {
-            var isMatched = false, j = 0;
-            for (var key in options) {
-                if (j > 0 && !isMatched) break;
-                isMatched = false;
-
-                if (options[key] === data[i][key]) {
-                    isMatched = true;
-                }
-                j++;
-            }
-            if (isMatched) {
-                if (isMatchMany) {
-                    matchedMany.push(data[i]);
-                } else {
-                    matchedOne = data[i]
-                    break;
-                }
-            }
-
-
-        }
-        matchedData = isMatchMany ? matchedMany : matchedOne;
-
-        return q.resolve(matchedData);
-    } catch (error) {
-        return q.reject(error);
-    }
-}
-
-function matchMany(data) {
-    return matchData(data, true);
-}
-
-function matchOne(data) {
-    return matchData(data, false);
-}
-
-function validateObject(data) {
-    if (!(typeof data === 'object' && data.length === undefined)) {
-        return new Error('Options are not in object');
-    } else {
-        return true;
-    }
-}
-
-
-function processData(reqData, fileData) {
-
-  return  fileData.push(reqData);
-
-}
-
-
-/**
- * return async Error
- */
-function err(err) {
-    return q.reject(err);
 }
 
 
@@ -308,40 +240,76 @@ function collection(entity) {
 }
 
 
+function matchData(data, isMany) {
+    var matchOne = null,
+        matchMany = [],
+        matchedData;
+    for (var i = 0; i < data.length; i++) {
+        var isMatched;
+        for (var key in option) {
+            isMatched = false;
+            if (option[key] == data[i][key]) {
+                isMatched = true;
+            }
+        }
+
+        if (isMatched) {
+            if (!isMatchMany) {
+                matchOne = data[i];
+                break;
+            } else {
+                matchMany.push(data[i]);
+            }
+        }
+    }
+    matchedData = isMatchMany ? matchMany : matchOne
+    return q.resolve(matchedData);
+}
+
+
+
+
 function find() {
 
-    return getDocumentName(collectionName)
-        .then(readDocument)
-        .catch(err);
+    return getDocumentPathAsyn(collectionName)
+        .then(readDocument);
 
 }
 
-function findOne(options) {
+function findOne(option) {
 
-    if (!(typeof options === 'object' && options.length === undefined))
-        return err(new Error('Options are not in object'));
+    isMatchMany = false;
 
-    return find()
-        .then(matchOne)
-        .catch(err);
-
-}
-
-function findMany(options) {
-
-
-    if (!(typeof options === 'object' && options.length === undefined))
-        return err(new Error('Options are not in object'));
+    if (!(typeof option === 'object' && option.length === undefined))
+        return q.reject(new Error('Options are not in object'));
 
 
     return find()
-        .then(matchMany)
-        .catch(err);
+        .then(matchData);
+
 }
 
-function save(data, isNew) {
 
-    return find().then(writeDocument).catch(err);
+
+
+
+
+function findMany() {
+
+    isMatchMany = true;
+
+    if (!(typeof option === 'object' && option.length === undefined))
+        return q.reject(new Error('Options are not in object'));
+
+
+    return find()
+        .then(matchData);
+}
+
+function save(data, option) {
+
+    findOne(option).then()
+
 }
 
 
