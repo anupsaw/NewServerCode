@@ -338,7 +338,7 @@ function patchData(to, from, ignore) {
 function processData(reqData, fileData) {
     try {
         reqData = reorderData(reqData);
-        if(!Array.isArray(fileData)) fileData = [];
+        if (!Array.isArray(fileData)) fileData = [];
         fileData.push(reorderData(reqData))
         return q.resolve({
             reqData: reqData,
@@ -382,6 +382,7 @@ function err(err) {
 
 function collection(entity) {
     collectionName = entity;
+    documentPath = getDocumentPathSync(collectionName);
     return {
         find: find,
         findOne: findOne,
@@ -446,7 +447,7 @@ function collection(entity) {
 
         function writeOnFile(processedData) {
             savedData = processedData.reqData;
-            return writeDocument(processedData.fileData, collectionName)        
+            return writeDocument(processedData.fileData, documentPath)
         }
 
         return find()
@@ -476,7 +477,7 @@ function collection(entity) {
 
         function writeData(data) {
             fullData.splice(updateIndex, 1, data);
-            return writeDocument(fullData, collectionName);
+            return writeDocument(fullData, documentPath);
         }
 
         return find()
