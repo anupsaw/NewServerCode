@@ -22,23 +22,6 @@ function saveEntity(req, res, next) {
         next();
     }
 
-    // function processData(_res) {
-    //     var _data = _res.data;
-
-    //     if (!Array.isArray(_data)) _data = [];
-
-    //     if (!reqBody.id) {
-    //         reqBody.id = new Date().getTime();
-    //     } else {
-    //         if (checkDuplicat(_data, reqBody.id)) {
-    //             return q.reject(new Error("Id " + reqBody.id + " already exists.Please provide some other Id."));
-    //         };
-    //     }
-
-    //     _data.push(reorderData(reqBody));
-
-    //     return q.resolve(_data);
-    // }
 
 }
 

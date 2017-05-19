@@ -196,7 +196,7 @@ function getDocumentpath(entity, baseFolder) {
  */
 function readDocument(documentName) {
 
-    var data = fs.readFileSync(documentName, 'UTF-8')
+    var data = fs.readFileSync(documentName, 'UTF8')
     return q.resolve(JSON.parse(data));
 
 }
@@ -238,7 +238,8 @@ function matchDataSync(data, options, isMatchMany) {
                 if (j > 0 && !isMatched) break;
                 isMatched = false;
 
-                if (options[key] === data[i][key]) {
+                //not using === sign as to avoid data type match
+                if (options[key] == data[i][key]) {
                     isMatched = true;
                 }
                 j++;
@@ -271,7 +272,7 @@ function matchDataSync(data, options, isMatchMany) {
 function matchData(data, options, isMatchMany) {
 
     try {
-        var data = matchDataSync(data, isMatchMany);
+        var data = matchDataSync(data, options, isMatchMany);
         return q.resolve(data);
     } catch (error) {
         return err(error);
@@ -288,9 +289,9 @@ function extractData(data) {
                 return item.data;
             })
         } else {
-            extractedData = data.data;
+            extractedData = data[0].data;
         }
-        return q.resolve(data.data);
+        return q.resolve(extractedData);
     } catch (error) {
         return err(error);
     }
@@ -310,7 +311,7 @@ function patchDataSync(to, from, ignore) {
 
     try {
         for (var key in from) {
-            if (!ignore.hasOwnProperty(key)) {
+            if (!ignore.hasOwnProperty(key) && key != '__id') {
                 to[key] = from[key];
             }
         }
@@ -389,7 +390,7 @@ function collection(entity) {
         findMany: findMany,
         save: save,
         update: update,
-        remove: remove
+        removeOne: removeOne
     }
 
 
@@ -424,6 +425,7 @@ function collection(entity) {
             return err(new Error('Options are not in object'));
 
         function matchMany(data) {
+            fullData = data;
             return matchData(data, options, true);
         }
 
@@ -463,35 +465,70 @@ function collection(entity) {
         if (!(typeof options === 'object' && options.length === undefined))
             return err(new Error('Options are not in object'));
 
-        var fullData, updateIndex;
+        var fullData, updateIndex, updatedData;
 
         function matchOne(_data) {
             fullData = _data;
             return matchData(_data, options, false);
         }
 
-        function updateDate(foundData) {
-            updateIndex = foundData.index;
-            return patchData(foundData, data, options)
+        function updateData(foundData) {
+            try {
+                updateIndex = foundData[0].index;
+                return patchData(foundData[0].data, data, options)
+            } catch (error) {
+                return q.reject(error);
+            }
         }
 
         function writeData(data) {
+            updatedData = data;
             fullData.splice(updateIndex, 1, data);
             return writeDocument(fullData, documentPath);
         }
 
+        function sendData() {
+            return q.resolve(updatedData);
+        }
+
         return find()
             .then(matchOne)
-            .then(updateDate)
+            .then(updateData)
             .then(writeData)
+            .then(sendData)
             .catch(err);
 
 
     }
 
 
-    function remove() {
+    function removeOne(options) {
 
+        if (!(typeof options === 'object' && options.length === undefined))
+            return err(new Error('Options are not in object'));
+
+        var fullData, updateIndex, updatedData;
+
+        function matchOne(_data) {
+            fullData = _data;
+            return matchData(_data, options, false);
+        }
+
+        function deleteData(foundData) {
+            try {
+                var index = foundData[0].index;
+                fullData.splice(index, 1);
+                return q.resolve(foundData)
+            } catch (error) {
+                return q.reject(error);
+            }
+        }
+
+
+        return find()
+            .then(matchOne)
+            .then(deleteData)
+            .catch(err);
     }
 
 }

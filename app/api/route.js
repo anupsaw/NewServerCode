@@ -7,6 +7,7 @@ var utility = require('./common.js');
 var api = {
     get: requireFile('./app/api/get.js'),
     post: requireFile('./app/api/post.js'),
+    put:requireFile('./app/api/put.js'),
 }
 
 // 
@@ -29,10 +30,10 @@ router.use(function timeLog(req, res, next) {
 
 })
 
-// router.route('/:entity/:id')
-//     .get(api.get.getData)
-//     .put(api.put)
-//     .delete(api.delete);
+router.route('/:entity/:id')
+    .get(api.get.getData)
+    .put(api.put);
+ //   .delete(api.delete);
 
 
 
@@ -50,9 +51,9 @@ router.use(function (req, res, next) {
 router.use(function (err, req, res, next) {
 
     res.statusCode = err.status || 500;
-    var error = JSON.stringify(err, ["message", "arguments", "type", "name"])
+    var error = JSON.stringify(err, ["message", "arguments", "type","stack", "name"])
     res.write(error);
-    utility.logError(error, req.params.entity)
+    //utility.logError(error, req.params.entity)
     res.end();
 });
 
