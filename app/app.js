@@ -26,7 +26,8 @@ app.get('/', function (req, res) {
 
 
 //app.use('/api', fsapi);
-app.use('/api', api);
+
+app.use(config.endPoint, api);
 
 
 module.exports = {

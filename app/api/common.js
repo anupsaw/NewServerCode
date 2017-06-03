@@ -21,7 +21,7 @@ function getFileName(entity, baseFolder) {
 
         if (!fs.existsSync(_fileName)) {
             mkdir('/' + _dir);
-            writeData('{}', _fileName);
+            writeDocument('{}', _fileName);
         }
 
         return q.resolve(_fileName);
@@ -102,10 +102,6 @@ function getId() {
     return _id;
 }
 
-function getEntity() {
-    return _entity;
-}
-
 /**
  * get formated data
  */
@@ -164,7 +160,7 @@ function getDocumentPathSync(entity, baseFolder) {
 
         if (!fs.existsSync(_fileName)) {
             mkdir('/' + _dir);
-            writeData('{}', _fileName);
+            writeDocument('{}', _fileName);
         }
 
         return _fileName;
@@ -196,9 +192,14 @@ function getDocumentpath(entity, baseFolder) {
  */
 function readDocument(documentName) {
 
-    var data = fs.readFileSync(documentName, 'UTF8')
-    return q.resolve(JSON.parse(data));
-
+    try {
+        var data = fs.readFileSync(documentName, 'UTF8')
+        var newData = data ? JSON.parse(data) : [];
+        return q.resolve(newData);
+    }
+    catch (error) {
+        return q.reject(error);
+    }
 }
 
 /**
@@ -387,10 +388,12 @@ function collection(entity) {
     return {
         find: find,
         findOne: findOne,
+        findById: findById,
         findMany: findMany,
         save: save,
         update: update,
-        removeOne: removeOne
+        delete: removeOne,
+        deleteById: deleteById
     }
 
 
@@ -416,6 +419,10 @@ function collection(entity) {
             .then(extractData)
             .catch(err);
 
+    }
+
+    function findById(id) {
+        return findOne({ __id: id });
     }
 
     function findMany(options) {
@@ -474,6 +481,7 @@ function collection(entity) {
 
         function updateData(foundData) {
             try {
+                if (!updateIndex) { return err(new Error('No Data Found To Update.')); }
                 updateIndex = foundData[0].index;
                 return patchData(foundData[0].data, data, options)
             } catch (error) {
@@ -531,30 +539,42 @@ function collection(entity) {
             .catch(err);
     }
 
+
+    function deleteById(id) {
+
+        return removeOne({ __id: id });
+    }
+
 }
 
 /**
  * log error on log file
  */
 
-function logError(error, entity) {
+function log(error, entity, req) {
 
-    if (!entity) entity = getEntity();
     var err = JSON.stringify({
         entity: entity,
-        error: JSON.stringify(error, ["message", "arguments", "type", "stack", "name"]),
+        message: error.message,
+        stack: error.stack,
+        method: req.method,
+        url: req.url,
+        body: req.body,
+        params: req.params,
+        queryString: req.queryString,
         timeStamp: new Date()
     });
-    readData('log', null, config.logErrorFolder)
-        .then(function (res) {
 
-            if (!Array.isArray(res.data)) res.data = [];
-
-            res.data.push(err);
-
-            writeData(res.data, res.file)
-                .then(q.reject(error));
-
+    var writeOnFile = getDocumentPathSync('log', config.logErrorFolder)
+    readDocument(writeOnFile)
+        .then(
+        function (fullLog) {
+            if (!Array.isArray(fullLog)) fullLog = [];
+            fullLog.push((err))
+            writeDocument(fullLog, writeOnFile);
+        }
+        ).catch(function (err) {
+            console.error(err);
         })
 
 }
@@ -566,5 +586,6 @@ function logError(error, entity) {
  */
 
 module.exports = {
-    collection: collection
+    collection: collection,
+    log: log
 };

@@ -15,4 +15,5 @@ server.use(main.app);
 server.listen(main.config.port, function (req, res) {
     console.log(new Date());
     console.log("Server is listening on port " + main.config.port)
+    console.log("To access the api use url : http://localhost:" + main.config.port  + main.config.endPoint)
 })

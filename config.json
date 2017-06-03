@@ -1,0 +1,7 @@
+{
+    "port" : 3100,
+    "appDataFolder" : "/appdata/user",
+    "logErrorFolder" : "/log",
+    "endPoint":"['/api12/', '/api/test']"
+
+}

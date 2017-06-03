@@ -53,7 +53,7 @@ router.use(function (err, req, res, next) {
     res.statusCode = err.status || 500;
     var error = JSON.stringify(err, ["message", "arguments", "type","stack", "name"])
     res.write(error);
-    //utility.logError(error, req.params.entity)
+    utility.log(err, req.params.entity, req);
     res.end();
 });
 
