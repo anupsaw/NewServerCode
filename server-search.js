@@ -36,6 +36,5 @@ router.use(function timeLog(req, res, next) {
 
 })
 
-function Anup(){}
 
 module.exports = router;
