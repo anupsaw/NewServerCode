@@ -1,5 +1,5 @@
 {
-  "name": "node-server-code",
+  "name": "@anupsaw/node-server-code",
   "version": "1.0.0",
   "description": "server code for doing curd operation on text files",
   "main": "server.js",
