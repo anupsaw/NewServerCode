@@ -8,7 +8,7 @@ function saveEntity(req, res, next) {
     id = req.params.id
     entity = req.params.entity;
 
-
+// test
     db.collection(entity)
         .save(reqBody)
         .then(success)
