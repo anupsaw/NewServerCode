@@ -32,8 +32,8 @@ router.use(function timeLog(req, res, next) {
 
 router.route('/:entity/:id')
     .get(api.get.getData)
-    .put(api.put);
- //   .delete(api.delete);
+    .put(api.put)
+    .delete(api.delete);
 
 
 
@@ -42,6 +42,7 @@ router.route('/:entity/:id')
 router.route('/:entity')
     .get(api.get.getData)
     .post(api.post)
+    .put()
 
 
 router.use(function (req, res, next) {

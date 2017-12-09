@@ -1,7 +1,7 @@
 {
     "port" : 3100,
-    "appDataFolder" : "/appdata/user",
+    "appDataFolder" : "/appdata",
     "logErrorFolder" : "/log",
-    "endPoint":"['/api12/', '/api/test']"
+    "endPoint":["/api12", "/api/test", "/anup", "/jaya", "/saw"]
 
 }
