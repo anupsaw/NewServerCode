@@ -14,7 +14,7 @@ gulp.task('changelog', function () {
     .pipe(conventionalChangelog({
       preset: 'angular' // Or to any other commit message convention you use.
     }))
-    .pipe(gulp.dest('./'));
+    .pipe(gulp.dest('./changelog.md'));
 });
 
 gulp.task('github-release', function(done) {
