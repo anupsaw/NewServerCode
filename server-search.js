@@ -16,8 +16,7 @@ router.use(function timeLog(req, res, next) {
     res.setHeader('Access-Control-Allow-Headers','Content-Type');
     res.setHeader('Access-Control-Max-Age',86400);
 
-    
-    //console.log(req);
+
 
     success = function (_res) {
         res.statusCode = req.method === 'POST' ? 201 : req.method === 'DELETE' ? 204 : 200;

@@ -16,6 +16,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 
+// default route
 app.get('/', function (req, res) {
 
     console.log('I am here');
